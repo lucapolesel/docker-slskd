@@ -1,0 +1,4 @@
+#!/usr/bin/with-contenv sh
+
+# run with limited permissions
+exec s6-setuidgid $PUID:$PGID /app/bin/slskd --app-dir=/config --config=/config/slskd.yml
