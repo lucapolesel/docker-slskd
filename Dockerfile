@@ -77,7 +77,7 @@ RUN apk add --no-cache --virtual=build-beets-deps \
       libpng-dev \
       mpg123-dev \
       openjpeg-dev \
-      python3-dev && \
+      python3-dev \
       unzip && \
     apk add --no-cache \
       chromaprint \
