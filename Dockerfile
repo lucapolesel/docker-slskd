@@ -35,6 +35,7 @@ ENV RUNTIME=linux-musl-arm64
 FROM base AS base-amd64
 ENV RUNTIME=linux-musl-x64
 
+# Use the appropriate base for the target architecture
 FROM base-$TARGETARCH AS build-backend
 # Install dotnet build dependencies
 RUN apk add --no-cache dotnet8-sdk
@@ -80,7 +81,8 @@ RUN apk add --no-cache --virtual=build-beets-deps \
       openjpeg-dev \
       python3-dev \
       unzip \
-      jq && \
+      jq \
+      curl && \
     apk add --no-cache \
       chromaprint \
       expat \
