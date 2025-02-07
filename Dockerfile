@@ -140,10 +140,6 @@ RUN apk add --no-cache --virtual=build-beets-deps \
     echo "**** cleanup beets build dependencies ****" && \
     apk del --purge build-beets-deps && \
     rm -rf /tmp/* /root/.cache /root/.cargo
-# Set environment variables as in the original beets image
-ENV BEETSDIR="/config" \
-    EDITOR="nano" \
-    HOME="/config"
 
 #############################
 # Final Runtime Stage
@@ -160,7 +156,10 @@ ENV S6_VERBOSITY=0 \
     SLSKD_HTTP_PORT=5030 \
     SLSKD_HTTPS_PORT=5031 \
     SLSKD_SLSK_LISTEN_PORT=50300 \
-    SLSKD_DOCKER_VERSION=$VERSION
+    SLSKD_DOCKER_VERSION=$VERSION \
+    BEETSDIR="/config" \
+    EDITOR="nano" \
+    HOME="/config"
 WORKDIR /config
 VOLUME /config
 # Expose slskd's HTTP port (adjust as necessary)
