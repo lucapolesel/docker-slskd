@@ -157,9 +157,9 @@ ENV S6_VERBOSITY=0 \
     SLSKD_HTTPS_PORT=5031 \
     SLSKD_SLSK_LISTEN_PORT=50300 \
     SLSKD_DOCKER_VERSION=$VERSION \
-    BEETSDIR="/config" \
-    EDITOR="nano" \
-    HOME="/config"
+    BEETSDIR="/config/beets" \
+    HOME="/config/beets" \
+    EDITOR="nano"
 WORKDIR /config
 VOLUME /config
 # Expose slskd's HTTP port (adjust as necessary)
