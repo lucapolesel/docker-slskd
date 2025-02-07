@@ -1,29 +1,30 @@
 # syntax=docker/dockerfile:1-labs
+
 #############################
-# Base Image & Common Settings
+# Base image & common settings
 #############################
 FROM public.ecr.aws/docker/library/alpine:3.20 AS base
 ENV TZ=UTC
 WORKDIR /src
 
 #############################
-# Source Stage (for slskd)
+# Source Stage
 #############################
 FROM base AS source
 ARG VERSION
+# Get the slskd source code (adjust branch/tag via VERSION)
 ADD https://github.com/slskd/slskd.git#$VERSION ./
 
 #############################
 # Frontend Stage
 #############################
 FROM base AS build-frontend
-# Install npm for frontend build
+# Install Node.js and npm
 RUN apk add --update npm
-# Copy frontend source from the slskd repository
+# Copy the frontend source from the slskd repository
 COPY --from=source /src/src/web/ ./
-RUN npm ci
-# Build the frontend and move the output to /build
-RUN npm run build && mv ./build /build
+# Install dependencies, build frontend, and move the build output to /build
+RUN npm ci && npm run build && mv ./build /build
 
 #############################
 # Backend Stage
@@ -78,7 +79,8 @@ RUN apk add --no-cache --virtual=build-beets-deps \
       mpg123-dev \
       openjpeg-dev \
       python3-dev \
-      unzip && \
+      unzip \
+      jq && \
     apk add --no-cache \
       chromaprint \
       expat \
@@ -117,7 +119,6 @@ RUN apk add --no-cache --virtual=build-beets-deps \
     if [ -z "${BEETS_VERSION}" ]; then \
       BEETS_VERSION=$(curl -sL https://pypi.python.org/pypi/beets/json | jq -r '.info.version'); \
     fi && \
-    # Create a Python virtual environment in /beets and install beets
     python3 -m venv /beets && \
     /beets/bin/pip install -U --no-cache-dir pip wheel && \
     /beets/bin/pip install -U --no-cache-dir --find-links https://wheel-index.linuxserver.io/alpine-3.21/ \
@@ -137,7 +138,7 @@ RUN apk add --no-cache --virtual=build-beets-deps \
     echo "**** cleanup beets build dependencies ****" && \
     apk del --purge build-beets-deps && \
     rm -rf /tmp/* /root/.cache /root/.cargo
-# Set environment variables similar to the original beets image
+# Set environment variables as in the original beets image
 ENV BEETSDIR="/config" \
     EDITOR="nano" \
     HOME="/config"
@@ -147,7 +148,7 @@ ENV BEETSDIR="/config" \
 #############################
 FROM base
 ARG VERSION
-# Set slskd-related environment variables
+# Set environment variables for slskd
 ENV S6_VERBOSITY=0 \
     S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
     PUID=65534 \
@@ -158,16 +159,15 @@ ENV S6_VERBOSITY=0 \
     SLSKD_HTTPS_PORT=5031 \
     SLSKD_SLSK_LISTEN_PORT=50300 \
     SLSKD_DOCKER_VERSION=$VERSION
-
 WORKDIR /config
 VOLUME /config
+# Expose slskd's HTTP port (adjust as necessary)
 EXPOSE 5030
-
 # Copy slskd backend and frontend artifacts
 COPY --from=build-backend /build /app
 COPY --from=build-frontend /build /app/bin/wwwroot
+# Copy additional root files
 COPY ./rootfs/. /
-
 # Install runtime dependencies for slskd and beets
 RUN apk add --no-cache \
       tzdata \
@@ -193,14 +193,11 @@ RUN apk add --no-cache \
       openjpeg \
       chromaprint \
       expat
-
-# Copy the beets installation (the virtual environment and helper binaries) from build-beets
+# Copy the beets virtual environment and helper binaries from build-beets
 COPY --from=build-beets /beets /beets
 COPY --from=build-beets /usr/bin/mp3gain /usr/bin/mp3gain
 COPY --from=build-beets /usr/bin/mp3val /usr/bin/mp3val
-
-# Update PATH so that beets (installed in /beets/bin) is available for terminal use
+# Update PATH so that beets commands (installed in /beets/bin) are available
 ENV PATH="/beets/bin:${PATH}"
-
-# Start the container (using s6-overlay as the init system for slskd)
+# Use s6-overlay as the init system
 ENTRYPOINT ["/init"]
